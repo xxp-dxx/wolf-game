@@ -15,7 +15,7 @@ export interface ChatMessage {
 }
 
 export type Difficulty = "easy" | "normal" | "hard";
-export type GameMode = "standard" | "wolveless" | "multi-wolf";
+export type GameMode = "standard" | "wolveless" | "multi-wolf" | "local";
 
 export interface GameState {
   lobbyId: string;
