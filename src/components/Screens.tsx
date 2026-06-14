@@ -3,7 +3,7 @@ import { GameState, Player, Difficulty, GameMode } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMobile } from "../hooks/use-mobile";
+import { useIsMobile } from "../hooks/use-mobile";
 
 // ── Countdown hook ─────────────────────────────────────────────────────────────
 function useCountdown(endsAt: number | null) {
@@ -109,7 +109,7 @@ function DiscussionScreen({
   const [msg, setMsg] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
   const isSpectator = gameState.isSpectator;
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [showPlayerOverlay, setShowPlayerOverlay] = useState(false);
 
   useEffect(() => {
@@ -377,7 +377,7 @@ function VotingScreen({
   const [hovered, setHovered] = useState<"red" | "blue" | null>(null);
   const isSpectator = gameState.isSpectator;
   const alivePlayer = gameState.players.find((p) => p.isYou && p.alive);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   const handleVote = (color: "red" | "blue") => {
     if (chosen || isSpectator || !alivePlayer) return;
