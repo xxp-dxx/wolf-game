@@ -63,6 +63,31 @@ WHAT THIS MEANS:
 - Chat is for COORDINATING THE VOTE — not for hunting anyone.
 `;
 
+// Truncate text at the last complete sentence within maxLen characters.
+// Falls back to a hard cut only if no sentence boundary is found.
+function truncateAtSentence(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const sub = text.slice(0, maxLen);
+  // Look for the last sentence-ending punctuation followed by a space or end
+  const lastPunct = Math.max(
+    sub.lastIndexOf(". "),
+    sub.lastIndexOf("! "),
+    sub.lastIndexOf("? "),
+    sub.lastIndexOf(".\n"),
+    sub.lastIndexOf("!\n"),
+    sub.lastIndexOf("?\n"),
+  );
+  if (lastPunct > maxLen * 0.4) {
+    return text.slice(0, lastPunct + 1).trim();
+  }
+  // If the text ends cleanly with punctuation already, keep it
+  const lastChar = sub.trimEnd().slice(-1);
+  if (lastChar === "." || lastChar === "!" || lastChar === "?") {
+    return sub.trimEnd();
+  }
+  return sub.trimEnd() + "...";
+}
+
 export async function generateBotMessage(ctx: BotContext): Promise<string> {
   const groq = getGroq();
   if (!groq) return getOfflineBotMessage(ctx);
@@ -111,12 +136,12 @@ Write your single message as ${ctx.botName}. Talk about vote strategy and surviv
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: 90,
+      max_tokens: 130,
       temperature: 0.82,
     });
     const text = completion.choices[0]?.message?.content?.trim() ?? "";
     if (!text) return getOfflineBotMessage(ctx);
-    return text.slice(0, 220);
+    return truncateAtSentence(text, 240);
   } catch (err) {
     logger.warn({ err }, "Groq API error, using offline bot message");
     return getOfflineBotMessage(ctx);
@@ -194,39 +219,45 @@ Respond with ONLY the single word "red" or "blue".`;
 }
 
 function getOfflineBotMessage(ctx: BotContext): string {
+  const redMessages = [
+    "Red is the only safe play this round. Don't gamble with blue.",
+    "We need to coordinate — red is the floor, blue is a bet we can't afford to lose.",
+    "Anyone pushing blue better have the numbers to back it up.",
+    "Red keeps us alive. Blue needs 51-70% to work, and I don't trust that coordination.",
+    "Think about the math: red is guaranteed survival. Blue is a high-stakes bet.",
+    "I'm going red until someone gives me a compelling reason not to.",
+  ];
+
+  const blueMessages = [
+    "If we all coordinate on blue, we can hit the 51-70% window safely.",
+    "Blue is the move if enough of us commit. Are we committing?",
+    "The overpopulation risk is real but manageable if we cap it right.",
+    "I think blue is worth the risk this round — we need to work toward an exit condition.",
+  ];
+
   const wolfMessages = [
-    "Red is the only clean play here. Blue coordination with this many people is impossible.",
-    "We've seen blue blow up twice. Stick red this round.",
-    "The math is simple: red keeps you alive. Stop gambling on blue.",
-    "Anyone pushing blue with this group size is setting us all up.",
-    "Red. Every time. At least we control the outcome.",
+    "Red is the play. Overpopulation wipes everyone and that helps no one.",
+    "Anyone who pushes blue above 70% is handing everyone a death sentence.",
+    "I've run the math — red majority is survival. Blue is a gamble with your life.",
+    "Don't overthink it. Red is safe. Blue needs perfect coordination we don't have.",
   ];
-  const innocentMessages = [
-    "Red is the safe vote. Blue only works if we're disciplined, and we're not.",
-    "If blue spikes past 70 we all die. Play it safe.",
-    "I'm going red. Coordinating blue in a group this size is a trap.",
-    "The wolf wants chaos. Don't give it to them. Red.",
-    "Blue only works as a tight band. We're nowhere near that. Red.",
-    "Anyone pushing hard for blue right now — suspicious timing.",
-    "Vote red and survive. We can try blue when there are fewer of us.",
-  ];
-  const pool = ctx.isWolf ? wolfMessages : innocentMessages;
+
+  const pool = ctx.isWolf ? wolfMessages : (Math.random() > 0.3 ? redMessages : blueMessages);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function getOfflineBotVote(ctx: { isWolf: boolean; redCount: number; blueCount: number; aliveCount: number }): "red" | "blue" {
-  const bluePct = ctx.aliveCount > 0 ? (ctx.blueCount / ctx.aliveCount) * 100 : 0;
-
+function getOfflineBotVote(ctx: BotContext & {
+  redCount: number;
+  blueCount: number;
+  aliveCount: number;
+}): "red" | "blue" {
   if (ctx.isWolf) {
-    // Wolf: vote with the current majority
+    // Wolf votes with the majority
     return ctx.redCount >= ctx.blueCount ? "red" : "blue";
   }
-
-  // Innocent: red is ALMOST ALWAYS the safe call
-  // Only go blue if blue is currently at a perfect coordination band (50-60%) — very rare
-  if (bluePct >= 50 && bluePct <= 60) {
-    return "blue"; // looks like a controlled coordination — join it
-  }
-  // Otherwise: default red
+  // Regular player: vote red unless blue is clearly safe
+  const bluePct = ctx.aliveCount > 0 ? (ctx.blueCount / ctx.aliveCount) * 100 : 0;
+  if (bluePct >= 60) return "red"; // Overpopulation risk
+  if (bluePct > 45 && bluePct < 60 && Math.random() > 0.6) return "blue"; // Risky but possible
   return "red";
 }
