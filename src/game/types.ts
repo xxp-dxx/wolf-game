@@ -15,7 +15,7 @@ export interface ChatMessage {
 }
 
 export type Difficulty = "easy" | "normal" | "hard";
-export type GameMode = "standard" | "wolveless" | "multi-wolf" | "local";
+export type GameMode = "standard" | "wolveless" | "multi-wolf" | "local" | "compact" | "local-compact";
 
 export interface RoundHistory {
   round: number;
