@@ -38,9 +38,10 @@ export interface GameState {
     wolfName: string;
     wolfVote: "red" | "blue";
     casualties: string[];
-    clearCondition: "bloodbath" | "blind_martyr" | null;
+    clearCondition: "bloodbath" | "blind_martyr" | "stalemate" | null;
     redPct: number;
     bluePct: number;
+    biteActivated: boolean;
   }>;
   resolution: {
     redCount: number;
@@ -56,7 +57,7 @@ export interface GameState {
     wolfInMinority: boolean;
     peacefulRound: boolean;
     casualties: string[];
-    clearCondition: "bloodbath" | "blind_martyr" | null;
+    clearCondition: "bloodbath" | "blind_martyr" | "stalemate" | null;
     survivorCount: number;
   } | null;
   discussionEndsAt: number | null;
@@ -68,4 +69,6 @@ export interface GameState {
   myVote: "red" | "blue" | null;
   youAreWolf: boolean;
   isSpectator: boolean;
+  liveRedCount: number;
+  liveBlueCount: number;
 }
