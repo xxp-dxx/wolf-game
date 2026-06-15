@@ -12,6 +12,7 @@ export interface ChatMessage {
   playerName: string;
   text: string;
   timestamp: number;
+  isGhost?: boolean;
 }
 
 export type Difficulty = "easy" | "normal" | "hard";
@@ -54,7 +55,7 @@ export interface Lobby {
   difficulty: Difficulty;
   gameMode: GameMode;
   wolfCount: number;
-  phase: "lobby" | "briefing" | "discussion" | "voting" | "resolution" | "condition_check" | "game_over" | "victory";
+  phase: "lobby" | "briefing" | "discussion" | "voting" | "resolution" | "condition_check" | "game_over" | "victory" | "cipher_victory";
   players: Map<string, Player>;
   chat: ChatMessage[];
   history: RoundHistory[];
@@ -104,4 +105,6 @@ export interface ClientGameState {
   isSpectator: boolean;
   liveRedCount: number;
   liveBlueCount: number;
+  totalCipherBites: number;
+  cipherBiteThreshold: number;
 }
