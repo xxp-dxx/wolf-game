@@ -493,7 +493,7 @@ function VotingScreen({
 
       <div className="px-6 py-4 shrink-0">
         <div className="text-center text-xs tracking-[0.4em] text-zinc-500 mb-2">
-          {isSpectator ? "VOTE IN PROGRESS." : "MAKE YOUR CHOICE."}
+          {isSpectator ? "VOTE IN PROGRESS." : gameState.youAreWolf ? "CIPHER ACTIVE — CHOOSE YOUR SIDE." : "MAKE YOUR CHOICE."}
         </div>
         <div className="h-1 bg-zinc-900 w-full">
           <motion.div
@@ -506,36 +506,101 @@ function VotingScreen({
         <div className="text-right text-[10px] text-zinc-700 mt-1">
           {gameState.votedCount}/{gameState.aliveCount} VOTED
         </div>
+        {/* Cipher intel — live vote split visible only to the Cipher */}
+        {gameState.youAreWolf && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 border px-3 py-2 flex items-center justify-between"
+            style={{ borderColor: "rgba(255,191,0,0.25)", background: "rgba(255,191,0,0.04)" }}
+          >
+            <span className="text-[9px] tracking-widest" style={{ color: "#a16207" }}>CIPHER INTEL</span>
+            <div className="flex items-center gap-4 text-xs font-bold tabular-nums">
+              <motion.span
+                key={gameState.liveRedCount}
+                initial={{ scale: 1.4 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.15 }}
+                style={{ color: "#DC143C" }}
+              >
+                RED {gameState.liveRedCount}
+              </motion.span>
+              <span className="text-zinc-800">·</span>
+              <motion.span
+                key={`b${gameState.liveBlueCount}`}
+                initial={{ scale: 1.4 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.15 }}
+                style={{ color: "#00FFFF" }}
+              >
+                BLUE {gameState.liveBlueCount}
+              </motion.span>
+            </div>
+            <span className="text-[9px] tracking-widest text-zinc-700">
+              {gameState.aliveCount - gameState.votedCount} PENDING
+            </span>
+          </motion.div>
+        )}
       </div>
 
       {/* ── Vote area ── */}
       <div className={`flex flex-1 ${isMobile ? "flex-col" : "flex-row"}`}>
         {isSpectator ? (
+          /* Spectator: live red vs blue counts */
           <div className="w-full flex items-center justify-center">
             <div className="text-center space-y-6">
-              <div className={`flex ${isMobile ? "flex-col gap-8" : "gap-12"} items-center justify-center`}>
+              <div className={`flex ${isMobile ? "flex-col gap-8" : "gap-16"} items-center justify-center`}>
                 <div className="text-center">
-                  <div
-                    className={`font-bold tracking-widest ${isMobile ? "text-5xl" : "text-6xl"}`}
+                  <motion.div
+                    key={gameState.liveRedCount}
+                    initial={{ scale: 1.3 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`font-bold tracking-widest tabular-nums ${isMobile ? "text-7xl" : "text-8xl"}`}
                     style={{ color: "#DC143C" }}
                   >
-                    RED
-                  </div>
-                  <div className="text-zinc-600 text-xs tracking-widest mt-2">
-                    {gameState.players.filter(p => p.alive).length - gameState.votedCount} remaining
-                  </div>
+                    {gameState.liveRedCount}
+                  </motion.div>
+                  <div className="text-[#DC143C] text-xs tracking-[0.4em] mt-1 opacity-60">RED</div>
                 </div>
-                {!isMobile && <div className="text-zinc-800 text-4xl">·</div>}
+                <div className="text-zinc-800 text-4xl font-thin">·</div>
                 <div className="text-center">
-                  <div
-                    className={`font-bold tracking-widest ${isMobile ? "text-5xl" : "text-6xl"}`}
+                  <motion.div
+                    key={gameState.liveBlueCount}
+                    initial={{ scale: 1.3 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`font-bold tracking-widest tabular-nums ${isMobile ? "text-7xl" : "text-8xl"}`}
                     style={{ color: "#00FFFF" }}
                   >
-                    BLUE
-                  </div>
+                    {gameState.liveBlueCount}
+                  </motion.div>
+                  <div className="text-[#00FFFF] text-xs tracking-[0.4em] mt-1 opacity-60">BLUE</div>
                 </div>
               </div>
-              <div className="text-zinc-600 text-xs tracking-widest">OBSERVING VOTE</div>
+              <div className="text-zinc-700 text-[10px] tracking-widest">
+                {gameState.aliveCount - gameState.votedCount > 0
+                  ? `${gameState.aliveCount - gameState.votedCount} NOT YET VOTED`
+                  : "ALL VOTES CAST"}
+              </div>
+            </div>
+          </div>
+        ) : !alivePlayer ? (
+          /* Eliminated player — cannot vote */
+          <div className="w-full flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <motion.div
+                animate={{ opacity: [0.4, 0.7, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className={`font-bold tracking-widest ${isMobile ? "text-5xl" : "text-6xl"}`}
+                style={{ color: "#3f3f46" }}
+              >
+                ELIMINATED
+              </motion.div>
+              <div className="text-zinc-700 text-xs tracking-widest">YOU CANNOT VOTE</div>
+              <div className="text-zinc-800 text-[10px] tracking-widest mt-4">
+                {gameState.votedCount}/{gameState.aliveCount} VOTES CAST
+              </div>
             </div>
           </div>
         ) : chosen ? (
@@ -587,7 +652,11 @@ function VotingScreen({
                 <div className="text-7xl font-bold tracking-widest" style={{ color: "#00FFFF" }}>
                   BLUE
                 </div>
-                <div className="text-zinc-700 text-[10px] tracking-widest mt-2">TAP TO VOTE</div>
+                {gameState.youAreWolf && (gameState.liveBlueCount + 1) / gameState.aliveCount * 100 > gameState.overpopulationThresholdPct ? (
+                  <div className="text-[10px] tracking-widest mt-2" style={{ color: "#eab308" }}>⚠ TRIGGERS BLIND MARTYR</div>
+                ) : (
+                  <div className="text-zinc-700 text-[10px] tracking-widest mt-2">TAP TO VOTE</div>
+                )}
               </div>
             </button>
           </>
@@ -610,7 +679,12 @@ function VotingScreen({
               className="w-1/2 flex items-center justify-center transition-all"
               style={{ background: hovered === "blue" ? "rgba(0,255,255,0.09)" : "transparent" }}
             >
-              <span className="text-8xl font-bold tracking-widest select-none" style={{ color: "#00FFFF" }}>BLUE</span>
+              <div className="text-center select-none">
+                <span className="text-8xl font-bold tracking-widest" style={{ color: "#00FFFF" }}>BLUE</span>
+                {gameState.youAreWolf && (gameState.liveBlueCount + 1) / gameState.aliveCount * 100 > gameState.overpopulationThresholdPct && (
+                  <div className="text-[10px] tracking-widest mt-3" style={{ color: "#eab308" }}>⚠ TRIGGERS BLIND MARTYR</div>
+                )}
+              </div>
             </button>
           </>
         )}
@@ -790,22 +864,28 @@ function ResolutionScreen({ gameState }: { gameState: GameState }) {
                 </motion.div>
                 {res.wolfBiteActivated ? (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.7 }}
-                    className="mt-3 text-[#DC143C] text-xs tracking-widest font-bold"
+                    className="mt-3 border border-[#DC143C] p-2"
+                    style={{ boxShadow: "0 0 12px rgba(220,20,60,0.25)" }}
                   >
-                    CIPHER IN MAJORITY. THE MINORITY BLEEDS.
+                    <div className="text-[#DC143C] text-xs tracking-widest font-bold">
+                      ⚡ THE CIPHER STRUCK
+                    </div>
+                    <div className="text-zinc-400 text-[10px] tracking-widest mt-1">
+                      {res.wolfName} VOTED WITH THE MAJORITY. THE MINORITY BLEEDS.
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.7 }}
-                    className="mt-3 text-zinc-500 text-xs tracking-widest"
+                    className="mt-3 text-zinc-600 text-[10px] tracking-widest"
                     style={{ textDecoration: "line-through" }}
                   >
-                    CIPHER IN MINORITY. BITE FAILED.
+                    CIPHER IN MINORITY — BITE FAILED
                   </motion.div>
                 )}
               </motion.div>
@@ -927,21 +1007,39 @@ function ConditionCheckScreen({ gameState }: { gameState: GameState }) {
 
       {step >= 2 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 w-full max-w-md">
-          <div
-            className="p-4 border tracking-widest text-sm"
-            style={{ borderColor: res.clearCondition === "bloodbath" ? "#00FFFF" : "#27272a" }}
-          >
-            <div className="text-zinc-500 text-[10px] mb-1">CONDITION 1</div>
-            <div className="text-white">
-              BLOODBATH: SURVIVORS ≤ {gameState.bloodbathThreshold}
-              <span className="text-zinc-600 text-[10px] ml-2">({bloodbathPct}% OF {gameState.startingPlayerCount})</span>
+          {res.clearCondition === "stalemate" ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 border tracking-widest text-sm"
+              style={{ borderColor: "#DC143C", boxShadow: "0 0 20px rgba(220,20,60,0.2)" }}
+            >
+              <div className="text-zinc-500 text-[10px] mb-1">DEADLOCK DETECTED</div>
+              <div className="text-[#DC143C] font-bold">SYSTEM STALEMATE</div>
+              <div className="text-xs mt-1 text-zinc-400">
+                NO VOTE PRODUCED CASUALTIES. THE SYSTEM HAS BROKEN DOWN.
+              </div>
+              <div className="text-xs mt-1" style={{ color: "#00FFFF" }}>
+                ALL SURVIVING SUBJECTS RELEASED.
+              </div>
+            </motion.div>
+          ) : (
+            <div
+              className="p-4 border tracking-widest text-sm"
+              style={{ borderColor: res.clearCondition === "bloodbath" ? "#00FFFF" : "#27272a" }}
+            >
+              <div className="text-zinc-500 text-[10px] mb-1">CONDITION 1</div>
+              <div className="text-white">
+                BLOODBATH: SURVIVORS ≤ {gameState.bloodbathThreshold}
+                <span className="text-zinc-600 text-[10px] ml-2">({bloodbathPct}% OF {gameState.startingPlayerCount})</span>
+              </div>
+              <div className="text-xs mt-1" style={{ color: res.clearCondition === "bloodbath" ? "#00FFFF" : "#52525b" }}>
+                {res.clearCondition === "bloodbath"
+                  ? "QUOTA MET. SURVIVORS RELEASED."
+                  : `${res.survivorCount} REMAINING — NEGATIVE`}
+              </div>
             </div>
-            <div className="text-xs mt-1" style={{ color: res.clearCondition === "bloodbath" ? "#00FFFF" : "#52525b" }}>
-              {res.clearCondition === "bloodbath"
-                ? "QUOTA MET. SURVIVORS RELEASED."
-                : `${res.survivorCount} REMAINING — NEGATIVE`}
-            </div>
-          </div>
+          )}
 
           {gameState.gameMode !== "wolveless" && (
             <div
@@ -989,28 +1087,81 @@ function ConditionCheckScreen({ gameState }: { gameState: GameState }) {
 // ── Post-match stats ───────────────────────────────────────────────────────────
 function PostMatchStats({ gameState }: { gameState: GameState }) {
   const totalCasualties = gameState.history.reduce((s, r) => s + r.casualties.length, 0);
+  const totalBites = gameState.history.filter((r) => r.biteActivated).length;
+
+  // Build per-player leaderboard from history (revealed post-game)
+  const cipherMap = new Map<string, { wolfName: string; rounds: number; bites: number }>();
+  for (const r of gameState.history) {
+    const key = r.wolfId || r.wolfName;
+    const cur = cipherMap.get(key) ?? { wolfName: r.wolfName, rounds: 0, bites: 0 };
+    cipherMap.set(key, { wolfName: r.wolfName, rounds: cur.rounds + 1, bites: cur.bites + (r.biteActivated ? 1 : 0) });
+  }
+  const leaderboard = [...cipherMap.values()].sort((a, b) => b.bites - a.bites || b.rounds - a.rounds);
+  const multipleWolves = leaderboard.length > 1;
+
   return (
     <div className="space-y-6 max-w-xl mx-auto w-full">
-      <div className="grid grid-cols-2 gap-4 text-center">
+      <div className="grid grid-cols-3 gap-3 text-center">
         <div className="border border-zinc-800 p-4">
           <div className="text-2xl font-bold text-white">{gameState.round}</div>
-          <div className="text-xs text-zinc-600 tracking-widest mt-1">ROUNDS</div>
+          <div className="text-[10px] text-zinc-600 tracking-widest mt-1">ROUNDS</div>
         </div>
         <div className="border border-zinc-800 p-4">
           <div className="text-2xl font-bold text-[#DC143C]">{totalCasualties}</div>
-          <div className="text-xs text-zinc-600 tracking-widest mt-1">TOTAL CASUALTIES</div>
+          <div className="text-[10px] text-zinc-600 tracking-widest mt-1">CASUALTIES</div>
+        </div>
+        <div className="border p-4" style={{ borderColor: totalBites > 0 ? "#DC143C" : "#27272a" }}>
+          <div className="text-2xl font-bold" style={{ color: totalBites > 0 ? "#DC143C" : "#52525b" }}>
+            {totalBites}
+          </div>
+          <div className="text-[10px] text-zinc-600 tracking-widest mt-1">CIPHER BITES</div>
         </div>
       </div>
+
+      {/* Cross-round Cipher Leaderboard — only useful when multiple players served as Cipher */}
+      {multipleWolves && (
+        <div className="space-y-2">
+          <div className="text-[10px] tracking-widest text-zinc-600 border-b border-zinc-900 pb-1">CIPHER LEADERBOARD</div>
+          {leaderboard.map((entry, i) => (
+            <div
+              key={entry.wolfName}
+              className="flex items-center gap-3 text-xs border p-3"
+              style={{ borderColor: entry.bites > 0 ? "rgba(220,20,60,0.35)" : "#18181b" }}
+            >
+              <span className="text-zinc-700 shrink-0 w-5 text-right">{i + 1}</span>
+              <span className="text-white tracking-widest flex-1 truncate">{entry.wolfName}</span>
+              <span className="text-zinc-600 shrink-0">{entry.rounds}× CIPHER</span>
+              <span
+                className="shrink-0 font-bold tracking-widest"
+                style={{ color: entry.bites > 0 ? "#DC143C" : "#52525b" }}
+              >
+                {entry.bites} STRUCK
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-2">
-        <div className="text-[10px] tracking-widest text-zinc-600 border-b border-zinc-900 pb-1">CIPHER HISTORY</div>
+        <div className="text-[10px] tracking-widest text-zinc-600 border-b border-zinc-900 pb-1">ROUND LOG</div>
         {gameState.history.map((r) => (
-          <div key={r.round} className="flex items-center justify-between text-xs border border-zinc-900 p-3">
-            <span className="text-zinc-500">RND {String(r.round).padStart(2, "0")}</span>
-            <span className="text-white tracking-widest">{r.wolfName}</span>
-            <span style={{ color: r.wolfVote === "red" ? "#DC143C" : "#00FFFF" }}>
-              VOTED {r.wolfVote.toUpperCase()}
+          <div
+            key={r.round}
+            className="flex items-center gap-2 text-xs border p-3"
+            style={{ borderColor: r.biteActivated ? "rgba(220,20,60,0.3)" : "#18181b" }}
+          >
+            <span className="text-zinc-600 shrink-0">RND {String(r.round).padStart(2, "0")}</span>
+            <span className="text-white tracking-widest flex-1 truncate">{r.wolfName}</span>
+            <span className="shrink-0" style={{ color: r.wolfVote === "red" ? "#DC143C" : "#00FFFF" }}>
+              {r.wolfVote.toUpperCase()}
             </span>
-            <span className="text-zinc-600">{r.casualties.length > 0 ? `−${r.casualties.length}` : "PEACE"}</span>
+            {r.biteActivated ? (
+              <span className="shrink-0 text-[#DC143C] font-bold tracking-widest">STRUCK</span>
+            ) : (
+              <span className="shrink-0 text-zinc-700">
+                {r.casualties.length > 0 ? `−${r.casualties.length}` : "PEACE"}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -1722,32 +1873,57 @@ export function Screens({
           </motion.div>
         )}
 
-        {phase === "victory" && (
-          <motion.div
-            key="victory"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 bg-black space-y-8 sm:space-y-10"
-          >
-            <motion.h1
-              className="text-4xl sm:text-7xl font-bold tracking-widest text-white text-center"
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 3, repeat: Infinity }}
+        {phase === "victory" && (() => {
+          const youSurvived = gameState.players.find((p) => p.isYou)?.alive ?? false;
+          return (
+            <motion.div
+              key="victory"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 bg-black space-y-8 sm:space-y-10"
             >
-              SURVIVAL CONFIRMED.
-            </motion.h1>
-            {gameState.resolution?.clearCondition === "blind_martyr" && (
-              <p className="text-[#FFBF00] tracking-widest text-sm">THE CIPHER SACRIFICED THEMSELVES.</p>
-            )}
-            {gameState.resolution?.clearCondition === "bloodbath" && (
-              <p className="text-[#00FFFF] tracking-widest text-sm">QUOTA MET. SURVIVORS RELEASED.</p>
-            )}
-            <PostMatchStats gameState={gameState} />
-            <Button onClick={() => window.location.reload()} variant="outline" className="rounded-none border-zinc-700 text-white font-mono tracking-wider">
-              PLAY AGAIN
-            </Button>
-          </motion.div>
-        )}
+              {youSurvived ? (
+                <>
+                  <motion.h1
+                    className="text-4xl sm:text-7xl font-bold tracking-widest text-white text-center"
+                    animate={{ opacity: [0.8, 1, 0.8] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    SURVIVAL CONFIRMED.
+                  </motion.h1>
+                  {gameState.resolution?.clearCondition === "blind_martyr" && (
+                    <p className="text-[#FFBF00] tracking-widest text-sm">THE CIPHER SACRIFICED THEMSELVES.</p>
+                  )}
+                  {gameState.resolution?.clearCondition === "bloodbath" && (
+                    <p className="text-[#00FFFF] tracking-widest text-sm">QUOTA MET. SURVIVORS RELEASED.</p>
+                  )}
+                  {gameState.resolution?.clearCondition === "stalemate" && (
+                    <p className="text-[#DC143C] tracking-widest text-sm">DEADLOCK. THE SYSTEM COLLAPSED. SURVIVORS FREED.</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <motion.h1
+                    className="text-4xl sm:text-7xl font-bold tracking-widest text-center"
+                    style={{ color: "#DC143C" }}
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    ELIMINATED.
+                  </motion.h1>
+                  <p className="text-zinc-500 tracking-widest text-sm text-center">
+                    YOU WERE REMOVED BEFORE THE SYSTEM COLLAPSED.
+                  </p>
+                  <p className="text-zinc-700 tracking-[0.3em] text-xs">THE SURVIVORS WERE FREED WITHOUT YOU.</p>
+                </>
+              )}
+              <PostMatchStats gameState={gameState} />
+              <Button onClick={() => window.location.reload()} variant="outline" className="rounded-none border-zinc-700 text-white font-mono tracking-wider">
+                PLAY AGAIN
+              </Button>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
